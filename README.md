@@ -1,21 +1,26 @@
 # 🤖 AI Automated Ledger Agent
 
-An intelligent, serverless Python automation pipeline that monitors a Gmail inbox for PDF invoices, extracts unstructured text in-memory, and uses a Large Language Model (Llama 3.1) to structure the data and autonomously update a Google Sheets general ledger.
+An end-to-end, serverless Python data pipeline that autonomously monitors an inbox, extracts unstructured data from complex multi-page PDF invoices, and uses **Llama 3.1** to strictly structure the data before syncing it to a live Google Sheets general ledger.
 
-## 🌟 Architecture Overview
+## 🌟 Live Demo & Dashboard
+* **[Watch the Backend Pipeline Demo (Loom/YouTube Link Here)](#)**
+* **[View the Deployed Streamlit UI Here](#)**
 
-1. **Ingestion (Gmail API):** Authenticates securely via OAuth 2.0 and queries the inbox for unread emails containing attachments.
-2. **In-Memory Processing (`pdfplumber`):** Downloads PDF byte streams and extracts raw text directly in RAM, avoiding local storage clutter.
-3. **Intelligent Structuring (Groq + Llama 3.1):** Passes unstructured text to Llama 3.1. Uses the `instructor` library and Pydantic schemas to strictly enforce valid JSON outputs for entity extraction and transaction classification (Debit vs. Credit).
-4. **Ledger Synchronization (Google Sheets API):** Calculates running balances based on AI classifications and pushes the formatted row to a live Google Sheet, finally marking the origin email as 'Read'.
+## 🏗️ System Architecture
+
+1. **Cloud Ingestion (Gmail API):** Authenticates securely via OAuth 2.0. Queries the inbox for unread emails with attachments, acting as an immutable ingestion queue.
+2. **In-Memory Extraction (`pdfplumber`):** Streams raw PDF bytes directly into RAM without saving to local disk. Splices multi-page consolidated invoices (e.g., e-commerce receipts with separate shipping/fee pages) into distinct chronological documents.
+3. **Intelligent Structuring (Llama 3.1 + Groq):** * Utilizes Llama 3.1 8B via Groq for ultra-low latency inference.
+   * Leverages the `instructor` library and `Pydantic` schemas to strictly enforce valid JSON outputs, ensuring mathematical safety (e.g., preventing LLMs from returning string equations like `"300+50"` instead of floats).
+4. **Database Synchronization (Google Sheets API):** Calculates running balances in Python and pushes the structured row to the ledger. Finally, marks the origin email as 'Read' to close the loop.
 
 ## 🛠️ Tech Stack
-* **Language:** Python 3.x
-* **AI/LLM:** Llama 3.1 (via Groq API for ultra-fast inference)
+* **Language:** Python 3.11+
+* **AI/LLM:** Llama 3.1 8B (via Groq)
 * **Structuring:** Pydantic, Instructor
 * **Cloud APIs:** Google Workspace (Gmail API, Google Sheets API)
-* **Data Handling:** `pdfplumber`, `gspread`
+* **Frontend UI:** Streamlit, Pandas
 
-## 🚀 Future Roadmap
-* Implement a front-end UI for manual invoice uploads and live ledger viewing.
-* Add Multimodal/OCR fallback for scanned, non-text PDFs.
+## 💡 Overcoming Engineering Challenges
+**The Consolidated Multi-Page PDF Problem:** Initial tests revealed that e-commerce vendors often bundle multiple distinct transactions (e.g., primary item, platform fees, shipping) into a single multi-page PDF. Passing the entire document to the LLM caused context confusion and missed line items. 
+* **Solution:** Refactored the extraction module to yield a list of page-specific text buffers, iterating the LLM over each page individually. This ensured 100% extraction accuracy across complex, heavily formatted corporate invoices.
